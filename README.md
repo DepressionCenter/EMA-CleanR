@@ -1,13 +1,12 @@
 <!--
-This file is part of < PROJECT NAME >
+This file is part of EMA-CleanR
 README.md
-Author(s): First Last; First Last; First Last; First Last.
-Created: 2026-01-01
-Last Modified: 2026-01-01
+Author(s): Sarah Sperry; Victoria Murphy.
+Created: 2025-12-12
 Summary: Provides an overview of the project, in Markdown format.
 Notes: See README file for documentation and full license information.
 
-Copyright © 2026 The Regents of the University of Michigan
+Copyright © 2025 The Regents of the University of Michigan
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -22,64 +21,64 @@ with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 ![Eisenberg Family Depression Center](https://github.com/DepressionCenter/.github/blob/main/images/EFDCLogo_375w.png "depressioncenter.org")
 
-# < Repository Title >
+# EMA-CleanR
 
 ## Description
-< Program/Library name > is a < program/library/collection of scripts > for < description of what it does and what problem it solves >.
+EMA-CleanR is a program for efficient pre-processing, cleaning, and visualization of Ecological Momentary Assessment (EMA) survey data in R to enable high-quality, real-time behavioral insights. It was created by Dr. Sarah Sperry and Victoria Murphy of the Emotion and Temporal Dynamics (EmoTe) Lab at the University of Michigan.
 
 
 
 ## Quick Start Guide
-+ < Short compile/run instructions, without too much detail >
++ Coming soon!
 
 
 
 ## Documentation
 + The full documentation is available at: https://michmed.org/efdc-kb
-+ __OR__ Detailed setup and usage instructions are available at: [ article_title ](https://link).
 
 
 
 
 ## Additional Resources
-+ < Links to study website, related projects, etc. >
++ EmoTe Lab projects - https://sperry.lab.medicine.umich.edu/active-projects
 
 
 
 ## About the Team
-< 1-2 paragraphs about your department, core, lab, study team, class or project. This is your marketing space! >
+The Emotion and Temporal Dynamics (EmoTe) Lab, directed by Dr. Sarah Sperry, in the Department of Psychiatry at the University of Michigan and affiliated with the Heinz C. Prechter Bipolar Research Program, has a broad mission to improve early detection, predict illness trajectory, and develop personalized interventions for bipolar spectrum disorders (BSDs). Within this broader mission we are working to better characterize and understand intraindividual variability in emotion and behavior in real-world contexts. We use digital phenotyping methods (smartphones and wearables) and advanced idiographic statistical methods to model dynamics over both micro (e.g., momentary) and macro (e.g., years) timescales.
 
-Learn more at: < link to dept/lab/project website >
+Learn more at: [EmoTe Lab](https://sperry.lab.medicine.umich.edu/home)
+
+_The code for this project is maintained in collaboration with the [Eisenberg Family Depression Center](https://depressioncenter.org) [(@DepressionCenter)](https://github.com/DepressionCenter) at the University of Michigan._
 
 
 
 ## Contact
 To get in touch, contact the individual developers in the check-in history.
 
-If you need assistance identifying a contact person, email the project maintainers at: < dept/lab/mcommunity group email address >.
+If you need assistance identifying a contact person, email the project maintainers at: efdc-mobiletech@umich.edu.
 
 
 
 ## Credits
 #### Contributors:
-+ [Eisenberg Family Depression Center](https://depressioncenter.org) [(@DepressionCenter)](https://github.com/DepressionCenter)
++ [Sarah Sperry](https://medschool.umich.edu/profile/7615/sarah-sperry)
++ [Victoria Murphy](https://mcommunity.umich.edu/person/vamurphy) [ (@victoria-murphy) ](https://github.com/victoria-murphy)
 + [Gabriel Mongefranco](https://gabriel.mongefranco.com) [(@gabrielmongefranco)](https://github.com/gabrielmongefranco)
-+ Name [ @githubusername ]( link to github profile or website )
-+ Name [ @githubusername ]( link to github profile or website )
-+ [ Name ]( link to profile or website ) [ @githubusername ]( link to github profile )
-+ [ Name ]( link to profile or website ) [ @githubusername ]( link to github profile )
++ [Eisenberg Family Depression Center](https://depressioncenter.org) [(@DepressionCenter)](https://github.com/DepressionCenter)
+
 
 
 
 #### This work is based in part on the following projects, libraries and/or studies:
-+ None
-+ __OR__ < Library or project name > - < link >
++ Emotion-based Impulsivity in Bipolar Disorder (EBI-BD) study - https://sperry.lab.medicine.umich.edu/active-projects
++ R libraries used: dplyr, psych, tidyverse, lubridate, table1
 
 
 
 ## License
 ### Copyright Notice
-Copyright © 2026 The Regents of the University of Michigan
+Copyright © 2025 The Regents of the University of Michigan
 
 
 ### Software and Library License Notice
@@ -104,15 +103,10 @@ Free Documentation License". If not, see <https://www.gnu.org/licenses/fdl-1.3-s
 If you find this repository, code or paper useful for your research, please cite it.
 
 #### Citation Example:
->_Last, first; Last, First; Last, First (2026). < Project Name >. University of Michigan. Software. https://github.com/DepressionCenter/< Project URL >_  
-​​​​​​​     _DOI: [< DOI # e.g. 10.6084/m9.figshare.xxxxxx.v1 >](https://doi.org/...)_
-
-#### __OPTIONAL__ Release History and DOI #:
-* 2026-01-01: v1.0. [< DOI # e.g. 10.6084/m9.figshare.xxxxxx.v1 >](https://doi.org/...)
-* 2026-06-30: v1.5. [< DOI # e.g. 10.6084/m9.figshare.xxxxxx.v1_5 >](https://doi.org/...)
-* 2026-01-01: v2.0. [< DOI # e.g. 10.6084/m9.figshare.xxxxxx.v2 >](https://doi.org/...)
+>_Sperry, Sarah; Murphy, Victoria (2025). EMA-CleanR. University of Michigan. Software. https://github.com/DepressionCenter/EMA-CleanR_  
+​​​​​​​     _DOI: (pending)_
 
 
 ----
 
-Copyright © 2026 The Regents of the University of Michigan
+Copyright © 2025 The Regents of the University of Michigan
