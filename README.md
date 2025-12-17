@@ -70,6 +70,10 @@ If you need assistance identifying a contact person, email the project maintaine
 
 
 ## Credits
+#### Authors:
++ [Sarah Sperry](https://medschool.umich.edu/profile/7615/sarah-sperry)
++ [Victoria Murphy](https://mcommunity.umich.edu/person/vamurphy) [ (@victoria-murphy) ](https://github.com/victoria-murphy)
+
 #### Contributors:
 + [Sarah Sperry](https://medschool.umich.edu/profile/7615/sarah-sperry)
 + [Victoria Murphy](https://mcommunity.umich.edu/person/vamurphy) [ (@victoria-murphy) ](https://github.com/victoria-murphy)
@@ -78,10 +82,10 @@ If you need assistance identifying a contact person, email the project maintaine
 
 
 
-
 #### This work is based in part on the following projects, libraries and/or studies:
-+ Emotion-based Impulsivity in Bipolar Disorder (EBI-BD) study - https://sperry.lab.medicine.umich.edu/active-projects
-+ R libraries used: dplyr, psych, tidyverse, lubridate, table1
++ [Emotion-based Impulsivity in Bipolar Disorder (EBI-BD)](https://sperry.lab.medicine.umich.edu/active-projects) study
++ [EFDC TDX Knowldge Base Templates](https://github.com/DepressionCenter/EFDC-TDX-KB)
++ R libraries used: dplyr, psych, tidyverse, lubridate, table1, corrplot, ggplot2, patchwork, rlang
 
 
 
