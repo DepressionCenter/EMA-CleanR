@@ -29,7 +29,16 @@ EMA-CleanR is a program for efficient pre-processing, cleaning, and visualizatio
 
 
 ## Quick Start Guide
-+ Coming soon!
++ Download and extract this repository (or clone with it).
++ Open **EMA-CleanR.html** to explore the code using sample data.
++ To load your own data:
+  + Replace **EMA-Data.csv** with your own file.
+    + Ensure it has at least these columns: participantidentifier,surveyname,start_datetime,end_datetime
+    + Each row represents one survey taken by one participant at one point in time.
+    + There should be one column per question, and the column headings should start with "EMA_" (e.g. EMA_01, EMA_02, etc.)
+  + Open **EMA-CleanR.Rmd** with R-Studio.
+  + Edit the parameters at the top if needed (e.g. input file name).
+  + Click the Knittr button to generate a new EMA-CleanR.html file with your own data.
 
 
 
