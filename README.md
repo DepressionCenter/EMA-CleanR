@@ -130,7 +130,7 @@ If you find this repository, code or paper useful for your research, please cite
 
 #### Citation Example:
 >_Sperry, Sarah; Murphy, Victoria (2025). EMA-CleanR. University of Michigan. Software. https://github.com/DepressionCenter/EMA-CleanR_  
-​​​​​​​     _DOI: (pending)_
+​​​​​​​     _DOI: [10.5281/zenodo.17982076](https://doi.org/10.5281/zenodo.17982076)_
 
 
 ----
