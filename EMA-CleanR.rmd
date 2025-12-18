@@ -1,11 +1,38 @@
 ---
+# This file is part of EMA-CleanR
+# EMA-CleanR.rmd
+# Author(s): Sarah Sperry; Victoria Murphy.
+# Created: 2025-12-05
+# Summary: Efficient pre-processing, cleaning, and visualization of Ecological Momentary Assessment (EMA) survey data in R to enable high-quality, real-time behavioral insights.
+# Notes: See README file for documentation and full license information.
+# 
+# Copyright © 2025 The Regents of the University of Michigan
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# YAML project configuration
 title: "EMA-CleanR"
 author: "Sarah Sperry; Victoria Murphy."
 date: "2025-12-05"
 abstract: "Efficient pre-processing, cleaning, and visualization of Ecological Momentary Assessment (EMA) survey data in R to enable high-quality, real-time behavioral insights. Learn more at: https://github.com/DepressionCenter/EMA-CleanR"
+
+#### ENTER INPUT PARAMETERS HERE ###
 params:
-  inputFile: "EMA-Data.csv"
-  inputFileHasHeaders: TRUE
+  input_file: "EMA-Data.csv"
+  input_file_has_headers: TRUE
+  late_survey_cutoff_hour: 9 # Surveys completed before this time (typically 1 hour before the 1st AM survey) count towards the previous day
+  ignore_surveys: ["Practice Daily Survey", "Practice", "Practica", "Prueba", "Test", "Temp", "Trial"]
+  ema_item_prefix: "EMA_" # All EMA columns (one per question) must start with this prefix
+### END INPUT PARAMETERS ###
+
 output:
   html_document:
     code_folding: show
@@ -72,32 +99,619 @@ library(rlang)
 
 ## Set Project Parameters
 ```{r set-parameters}
-# ---- Input Parameters ----
+### Input Parameters ###
 # If using R Markdown (.Rmd), set the parameters at the top of this file in YAML.
-# To re-use this script outside R Markdown, set your values here.
-inputFile <- if (exists("params") && !is.null(params$infile)) params$infile else "ema-data.csv"
-inputFileHasHeaders <- if (exists("params") && !is.null(params$header)) params$header else TRUE
+# To re-use this script outside R Markdown, set your values here instead, after each "else" statement
+input_file <- if (exists("params") && !is.null(params$infile)) params$infile else "EMA-Data.csv"
+input_file_has_headers <- if (exists("params") && !is.null(params$header)) params$header else TRUE
+
+late_survey_cutoff_hour <- 
+  if (exists("params") && !is.null(params$late_survey_cutoff_hour)) params$late_survey_cutoff_hour else 0
+
+ignore_surveys <-
+  if (exists("params") && !is.null(params$ignore_surveys)) {
+    params$ignore_surveys
+  } else {
+    c("Practice Daily Survey", "Practice", "Practica", "Prueba", "Test", "Temp", "Trial") # default
+  }
+
+ema_item_prefix <- 
+  if (exists("params") && !is.null(params$ema_item_prefix)) params$ema_item_prefix else "EMA_" # default
+
 ```
 
 ## Load Data Sets
 ```{r load-data}
 # Read in data set 
-EMAwide.merge <- read.csv(inputFile, sep = ",", header=inputFileHasHeaders)
-
+EMAwide.merge <- read.csv(input_file, sep = ",", header=input_file_has_headers)
 cat("Number of rows loaded:", nrow(EMAwide.merge), "\n")
 ```
 
 ----
 
-# Do Stuff
-## Sub heading
-```{r }
-print('Coming soon!') # Code will be available soon.
+# Clean Up EMA Datafile
+## Remove practice and test surveys
+```{r cleanup-remove-tests}
+## Get rid of practice and test surveys
+EMAwide.merge2 <- EMAwide.merge[!EMAwide.merge$surveyname %in% ignore_surveys, ]
+cat(
+  "Excluding surveys with these names:",
+  paste(ignore_surveys, collapse = ", "),
+  "\n",
+  "Remaining rows after exclusion:",
+  nrow(EMAwide.merge2),
+  "\n"
+)
 ```
 
-## Sub heading
-```{r }
-print('Coming soon!') # Code will be available soon.
+## Sort dataset and filter invalid participant IDs
+```{r cleanup-remove-invalid-ids}
+# Sort dataset and filter invalid participant IDs (R NA, empty string, "na", "n/a", "null", "NULL")
+EMAwide.merge2 <- EMAwide.merge2 %>% 
+    arrange(participantidentifier, start_datetime) %>% #sort the data by participant ID and date
+    filter(
+      !is.na(participantidentifier),                         # removes actual R NA
+      participantidentifier != "",                           # removes empty string
+      !tolower(participantidentifier) %in% c("na", "n/a", "null")  # removes "NA", "N/A", "null", "NULL"
+  )
+cat("Remaining rows after participantidentifier cleaning:", nrow(EMAwide.merge2), "\n")
+```
+
+## Cleanup dates and de-duplicate
+```{r cleanup-dates}
+# Take day time variables and make sure they are a time class
+EMAwide.merge2$start_datetime <- mdy_hm(EMAwide.merge2$start_datetime, tz = "UTC")
+EMAwide.merge2$end_datetime <- mdy_hm(EMAwide.merge2$end_datetime, tz = "UTC")
+
+# Create a variable that is date alone
+EMAwide.merge2<- EMAwide.merge2 %>%
+  mutate(start_day = (as.Date(format(start_datetime, "%Y-%m-%d")))) %>% 
+  relocate(start_day, .before = start_datetime)
+
+# Identify duplicates based on participantidentifier, start_day, and enddate
+duplicates <- EMAwide.merge2 %>%
+  group_by(participantidentifier, 
+           start_datetime, 
+           end_datetime) %>%
+  filter(n() > 1) %>%
+  ungroup()
+
+# Combine duplicate rows by participantidentifier, start_day, and enddate
+EMAwide.merge2_combined <- EMAwide.merge2 %>%
+  group_by(participantidentifier, 
+           start_datetime, 
+           end_datetime) %>%
+  summarise(across(everything(), ~ coalesce(.[1], .[2])), .groups = "drop")  # Merge partial responses
+
+# Resort and rename df
+EMA.DIGIT <- EMAwide.merge2_combined %>% 
+  arrange(participantidentifier, start_datetime)
+
+cat("Remaining rows after parsing dates and removing duplicates:", nrow(EMA.DIGIT), "\n")
+```
+
+## Categorize by participant ID convention
+```{r cleanup-categorize}
+# Create a new variable DX based on 'participant identifier'
+# In this example, the participant IDs are setup so that
+# anything starting with 5 indicates a bowel disease diagnosis, etc.
+# This approach could also be used to group by other characteristics or cohorts.
+EMA.DIGIT <- EMA.DIGIT %>%
+  mutate(
+    DX = case_when(
+      substr(participantidentifier, 1, 1) == "7" ~ "HC",
+      substr(participantidentifier, 1, 1) == "6" ~ "SBD",
+      substr(participantidentifier, 1, 1) == "5" ~ "BD",
+      TRUE ~ NA_character_
+    )) %>% 
+  relocate(DX, .after = participantidentifier)
+```
+
+## Identify and clean EMA items
+```{r cleanup-ema-items}
+# Identify EMA item columns
+ema_vars <- EMA.DIGIT %>% 
+  select(starts_with(ema_item_prefix)) %>% # all items in our study begin with EMA_
+  names()
+cat(
+  "Identify EMA item columns (prefix =", ema_item_prefix, ")...\n",
+  "EMA item vars found:", paste(ema_vars, collapse = ", "), "\n"
+)
+
+# Remove rows where all EMA items are NA
+EMA.DIGIT <- EMA.DIGIT %>%
+  filter(!if_all(all_of(ema_vars), is.na))
+cat("Rows remaining in cleaned data:", nrow(EMA.DIGIT), "\n")
+```
+
+
+## Create Variables 
+```{r}
+# Calculate days since start date
+calculate_day_in_study <- function(data) {
+  data <- data %>%
+    arrange(participantidentifier, start_datetime) %>%
+    group_by(participantidentifier) %>%
+    mutate(dayinstudy_uncorrected = as.integer(difftime(start_day, first(start_day), units = "days")) + 1) %>% # for each participant, calculate the number of days since their first start_day, treating the earliest day as Day 1
+    ungroup()
+  
+  return(data)
+}
+
+# apply calculate_day_in_study function 
+EMA.DIGIT2 <- calculate_day_in_study(EMA.DIGIT) %>% relocate(dayinstudy_uncorrected, .before = start_day)
+
+# Updated code without hard-coded survey name
+# When surveys are completed late, after midnight, count them towards the previous day
+# as long as they were completed before the specified cut-off time (late_survey_cutoff_hour)
+cat("Surveys completed between midnight and", late_survey_cutoff_hour, " will be counted as the previous study day.\n")
+EMA.DIGIT2 <- EMA.DIGIT2 %>%
+  group_by(participantidentifier) %>%  # Ensures correct lag in multi-participant data
+  mutate(
+    dayinstudy = case_when(
+      hour(start_datetime) < late_survey_cutoff_hour ~ lag(dayinstudy_uncorrected), # previous day
+      TRUE ~ dayinstudy_uncorrected
+    )
+  ) %>%
+  ungroup() %>%
+  relocate(dayinstudy, .before = start_datetime)
+
+
+# Check to make sure this worked by creating a new dataframe showing whether dayinstudy_uncorrected matches dayinstudy
+EMAwide_day_check <- EMA.DIGIT2 %>%
+  mutate(match = dayinstudy_uncorrected == dayinstudy)
+
+# Delete dayinstudy_uncorrected variable
+EMA.DIGIT2$dayinstudy_uncorrected <- NULL
+
+# Create a Survey number per participant
+EMA.DIGIT2 <- EMA.DIGIT2 %>%
+  arrange(participantidentifier, start_day) %>%  # Ensure data are sorted as desired
+  group_by(participantidentifier) %>%            # Group by each participant
+  mutate(surveynum = row_number()) %>%           # Create a sequence variable within each group
+  ungroup()  %>% 
+  # move our surveynum sequence before start_day variable
+  relocate(surveynum, .before = start_day)
+
+# Add a weekday column
+EMA.DIGIT2<- EMA.DIGIT2 %>%
+  mutate(weekday = weekdays(start_day),
+         day_type = ifelse(weekday %in% c("Saturday", "Sunday"), "Weekend", "Weekday")) %>% 
+  relocate(day_type, .before = start_day) 
+```
+
+
+## Time to Completion (TTC) Flag 
+Find total time it took to complete survey and identify flags
+
+```{r}
+# Calculate the time difference in mins
+EMA.DIGIT2<- EMA.DIGIT2 %>%
+  mutate(time_diff =as.integer(difftime(EMA.DIGIT2$end_datetime, EMA.DIGIT2$start_datetime, units = "secs"))) %>% relocate(time_diff, .before = start_day) 
+
+## Create a cutoff time for surveys that are taking longer, where SDcuthigh == mean + 2SD 
+mean <- mean(EMA.DIGIT2$time_diff, na.rm = TRUE)
+mean
+sd <- sd(EMA.DIGIT2$time_diff, na.rm = TRUE)
+sd
+SDcuthigh <- mean + (2*sd)
+SDcuthigh
+
+# Create a binary flag variable based on SDcuthigh condition
+EMA.DIGIT2$TTCFlag_High <- ifelse(EMA.DIGIT2$time_diff > SDcuthigh, 1, 0)
+
+## Visualize time_diff in a histogram, where red line shows our SDcuthigh threshold
+ggplot(EMA.DIGIT2, aes(x = time_diff)) +
+  geom_histogram(binwidth = 5, fill = "#00274C", color = "black") +
+  geom_vline(xintercept = SDcuthigh, color = "red", linetype = "dashed", size = 1) +  # Add vertical red line
+  labs(title = "Histogram of Time Difference",
+       x = "Time Difference (secs)",
+       y = "Frequency") +
+  theme_minimal()
+
+## Identify the timediff low. Theoretically, we choose the minimum as someone who completes all possible items in less than 1 second per item. For this survey, we have 23 items so are setting the low at 23 seconds. Note that all 23 items are not included in our deidentified data file. 
+
+EMA.DIGIT2$TTCFlag_Low <- ifelse(EMA.DIGIT2$time_diff < 23, 1, 0)
+
+```
+
+# Flags 
+## Low Variance (SD) Flag
+
+Calculate SD for items with Likert Scale and create flags 
+
+```{r}
+## If there is zero variance across all ema items, SD_Flag == 1
+EMA.DIGIT3 <- EMA.DIGIT2 %>%
+  mutate(
+    sd_EMA = apply(select(., all_of(ema_vars)), 1, sd, na.rm = TRUE),
+    SD_Flag = if_else(sd_EMA == 0, 1, 0)
+  ) %>%
+  relocate(sd_EMA, SD_Flag, .after = EMA_13)
+
+```
+
+## Flag Review
+
+```{r}
+# total number of surveys in your study. This study has 4 surveys over 28 days == 112 total surveys
+totalsurvey_n <- 112 
+
+## Create a df with IDs and the counts and percentages of data that are flagged 
+summary_df <- EMA.DIGIT3 %>%
+  group_by(participantidentifier) %>%
+  summarise(
+    TTCFlag_High = sum(TTCFlag_High, na.rm = TRUE),
+    TTCFlag_Low = sum(TTCFlag_Low, na.rm = TRUE),
+    SD_Flag = sum(SD_Flag, na.rm = TRUE), 
+    Percent_TTCFlag_High = round((TTCFlag_High / totalsurvey_n) * 100, 0),
+    Percent_TTCFlag_Low = round((TTCFlag_Low / totalsurvey_n) * 100, 0),
+    Percent_SD_Flag = round((SD_Flag / totalsurvey_n) * 100, 0)
+  )
+summary_df
+
+# Identify IDs that have 2 or more flags
+SuspectIDs <- summary_df %>%
+  rowwise() %>%
+  filter(sum(c_across(Percent_TTCFlag_High:Percent_SD_Flag) > 0) >= 2) %>% # row-wise sum across
+  ungroup() %>%  # Ungroup after row-wise operation
+  select(participantidentifier, Percent_TTCFlag_High, Percent_TTCFlag_Low, Percent_SD_Flag)
+
+SuspectIDs
+```
+
+
+
+## Figure Exploration
+
+### Time to completion histogram
+```{r,  fig.width=11, fig.height=11}
+# Filter the dataset to drop rows where any of the conditions are met
+EMA.DIGIT3_filtered <- EMA.DIGIT3 %>%
+  filter(!(TTCFlag_High == 1 | TTCFlag_Low == 1))
+
+## round to nearest 0.5 minutes for visualization
+EMA.DIGIT3_filtered <- EMA.DIGIT3_filtered %>%
+  mutate(
+    minutes = time_diff / 60,
+    minutes_rounded = floor(minutes * 2 + 0.5) / 2 )
+
+ggplot(EMA.DIGIT3_filtered, aes(x = minutes_rounded)) +
+  geom_histogram(binwidth = 5, fill = "#00274C", color = "black") +
+  facet_wrap(~ participantidentifier) +
+  labs(title = "Histogram of Time Difference per Participant",
+       x = "Time Difference (mins)",
+       y = "Frequency") +
+  theme_minimal() + 
+  theme(
+       panel.spacing = unit(1, "lines")   #increase spacing between plots
+  )
+```
+
+### SD histograms
+```{r fig.width=10, fig.height=12}
+## SD FLAGS
+df_counts <- EMA.DIGIT3 %>%
+  count(participantidentifier, SD_Flag)
+
+ggplot(df_counts, aes(x = factor(SD_Flag), y = n, fill = factor(SD_Flag))) +
+  geom_col(color = "black") +
+  facet_wrap(~ participantidentifier) +
+  labs(title = "Frequency of SD Flags",
+       x = "Response",
+       y = "Count") +
+  scale_fill_manual(values = c("0" = "#FFCB05", "1" = "#00274C")) +  # Customize colors
+  theme_minimal()
+
+```
+
+# Compliance
+## Missing Data Summary
+
+```{r}
+# Remove duplicates and keep the first occurrence based on participantidentifier, dayinstudy, and surveyname
+EMA.DIGIT4 <- EMA.DIGIT3 %>%
+  arrange(participantidentifier, dayinstudy, surveyname) %>%  # Arrange by the relevant columns
+  distinct(participantidentifier, dayinstudy, surveyname, .keep_all = TRUE)  # Keep first occurrence
+
+# Define all possible survey names
+survey_names <-  EMA.DIGIT4$surveyname %>% unique()
+
+# Create a complete dataset with all combinations of participant, day, and surveyname. Our current dataset only has completed surveys, so it's important we know what's really missing
+expected_surveys <- EMA.DIGIT4 %>%
+  distinct(participantidentifier, dayinstudy) %>%
+  tidyr::expand(participantidentifier, dayinstudy, surveyname = survey_names)
+
+# Count actual completed surveys per participant per day per surveyname
+actual_surveys <- EMA.DIGIT4 %>%
+  group_by(participantidentifier, dayinstudy, surveyname) %>%
+  summarise(completed = n(), .groups = "drop")
+
+# Merge expected and actual surveys
+missing_surveys <- expected_surveys %>%
+  left_join(actual_surveys, by = c("participantidentifier", "dayinstudy", "surveyname")) %>%
+  mutate(completed = ifelse(is.na(completed), 0, completed),  # Replace NA with 0
+         missing_count = 1 - completed)  # 1 if missing, 0 if completed
+
+
+## Plot missingness count by survey_name
+
+# Aggregate data to sum completed and missing_count for each surveyname
+survey_summary <- missing_surveys %>%
+  group_by(surveyname) %>%
+  summarise(completed = sum(completed, na.rm = TRUE),
+            missing_count = sum(missing_count, na.rm = TRUE)) %>%
+  ungroup()
+
+# Reshape the data to long format
+long_data <- survey_summary %>%
+  pivot_longer(cols = c(completed, missing_count), 
+               names_to = "survey_status", 
+               values_to = "count")  # Convert to long format
+
+# Create the grouped bar chart
+ggplot(long_data, aes(x = surveyname, y = count, fill = survey_status)) +
+  geom_bar(stat = "identity", position = "dodge") +  # Side-by-side bars
+  labs(x = "Survey Name", y = "Count", title = "Completed vs Missing Count by Survey Name") +  # Labels & title
+  theme_minimal() +  # Clean theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
+  scale_fill_manual(values = c("completed" = "#00274C", "missing_count" = "#FFCB05"))  # Custom colors
+
+
+## Plot missingness count by weekday vs. weekend
+
+## Get other variables we want to add to missingsurvey 
+
+Vars <- EMA.DIGIT4 %>%
+  select(participantidentifier, dayinstudy, surveyname,
+         day_type, deviceplatform, DX)
+
+
+missing_surveys2 <- merge(missing_surveys, Vars, by = c("participantidentifier", "dayinstudy", "surveyname"), all.x = TRUE)
+
+missing_surveys2 <- missing_surveys2 %>%
+  group_by(participantidentifier) %>%
+  fill(day_type, deviceplatform, DX, .direction = "downup") %>%  # Specify .direction only once
+  ungroup()
+
+# Aggregate data to sum completed and missing_count for each surveyname
+survey_summary <- missing_surveys2 %>%
+  group_by(day_type) %>%
+  summarise(completed = sum(completed, na.rm = TRUE),
+            missing_count = sum(missing_count, na.rm = TRUE)) %>%
+  ungroup()
+
+# Reshape the data to long format
+long_data <- survey_summary %>%
+  pivot_longer(cols = c(completed, missing_count), 
+               names_to = "survey_status", 
+               values_to = "count")  # Convert to long format
+
+# Create the grouped bar chart
+ggplot(long_data, aes(x = day_type, y = count, fill = survey_status)) +
+  geom_bar(stat = "identity", position = "dodge") +  # Side-by-side bars
+  labs(x = "Day Type", y = "Count", title = "Completed vs Missing Count by Day Type") +  # Labels & title
+  theme_minimal() +  # Clean theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
+  scale_fill_manual(values = c("completed" = "#00274C", "missing_count" = "#FFCB05"))  # Custom colors
+
+## Now plot completion v. deviceplatform
+
+# Aggregate data to sum completed and missing_count for each surveyname
+survey_summary <- missing_surveys2 %>%
+  group_by(deviceplatform) %>%
+  summarise(completed = sum(completed, na.rm = TRUE),
+            missing_count = sum(missing_count, na.rm = TRUE)) %>%
+  ungroup()
+
+# Reshape the data to long format
+long_data <- survey_summary %>%
+  pivot_longer(cols = c(completed, missing_count), 
+               names_to = "survey_status", 
+               values_to = "count")  # Convert to long format
+
+# Create the grouped bar chart
+ggplot(long_data, aes(x = deviceplatform, y = count, fill = survey_status)) +
+  geom_bar(stat = "identity", position = "dodge") +  # Side-by-side bars
+  labs(x = "Device", y = "Count", title = "Completed vs Missing Count by Device") +  # Labels & title
+  theme_minimal() +  # Clean theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
+  scale_fill_manual(values = c("completed" = "#00274C", "missing_count" = "#FFCB05"))  # Custom colors
+
+## Now do it for diagnosis
+
+# Aggregate data to sum completed and missing_count for each diagnosis
+survey_summary <- missing_surveys2 %>%
+  group_by(DX) %>%
+  summarise(completed = sum(completed, na.rm = TRUE),
+            missing_count = sum(missing_count, na.rm = TRUE)) %>%
+  ungroup()
+
+# Reshape the data to long format
+long_data <- survey_summary %>%
+  pivot_longer(cols = c(completed, missing_count), 
+               names_to = "survey_status", 
+               values_to = "count")  # Convert to long format
+
+# Create the grouped bar chart
+ggplot(long_data, aes(x = DX, y = count, fill = survey_status)) +
+  geom_bar(stat = "identity", position = "dodge") +  # Side-by-side bars
+  labs(x = "DX", y = "Count", title = "Completed vs Missing Count by DX") +  # Labels & title
+  theme_minimal() +  # Clean theme
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
+  scale_fill_manual(values = c("completed" = "#00274C", "missing_count" = "#FFCB05"))  # Custom colors
+
+
+```
+
+## Figures for percent_compliance
+
+```{r}
+## Total number of surveys that each person completed  & percentage complete
+df_compliance <- EMA.DIGIT4 %>%
+  group_by(participantidentifier) %>%
+  summarise(
+    total_completed = sum(!is.na(surveyname)),  # Count non-missing survey responses
+    total_expected = max(dayinstudy, na.rm = TRUE) * 4,  # Expected surveys (dayinstudy * 4)
+    percent_compliance = (total_completed / total_expected) * 100, 
+    DX = first(DX) 
+  )
+
+df_compliance$DX <- as.factor(df_compliance$DX)
+
+
+## Compliance by DX  Violin Plots
+ggplot(df_compliance, aes(x = DX, y = percent_compliance, fill = DX)) +
+  geom_violin(trim = T, alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5) +  # Add individual points
+  scale_fill_manual(values = c("#00274C", "#537BAE", "#FFCB05")) +  # Michigan hex codes
+  labs(title = "Survey Completion Percentage Distribution",
+       x = "Diagnosis",
+       y = "Percent Complete") +
+  theme_minimal() +
+  theme(legend.position = "none") + 
+  ylim(0,101)
+
+```
+
+## Compliance table
+```{r}
+table1(~ percent_compliance  | DX, data=df_compliance)
+```
+
+# Item Distribution
+## Histograms of EMA items
+
+```{r, fig.height = 9, fig.width = 11, warning=F}
+
+# make labels for items
+ema_labels <- c(
+  EMA_01 = "Nervous/Anxious",
+  EMA_02 = "Sad/Blue",
+  EMA_03 = "Irritable/Angry",
+  EMA_04 = "Happy/Joyful",
+  EMA_05 = "Excited/Enthusiastic",
+  EMA_06 = "Energy Level",
+  EMA_07 = "Situation Stressful",
+  EMA_08 = "Emotions Out of Control",
+  EMA_09 = "Attention to Feelings",
+  EMA_10 = "Confused About Feelings",
+  EMA_11 = "Emotion Regulation",
+  EMA_12 = "Impulsivity",
+  EMA_13 = "Acting on Feelings"
+)
+
+# Function for plotting histogram
+plot_list <- lapply(ema_vars, function(var){ # use previously defined ema_vars
+  
+  ggplot(EMA.DIGIT4, aes(x = .data[[var]])) +
+    geom_histogram(bins = 10, fill = "skyblue", color = "black") +
+    labs(
+      title = ema_labels[[var]], 
+      x = var, 
+      y = "Frequency"
+    ) +
+    theme_minimal()
+})
+
+# Plot on a grid
+combined_histograms <- wrap_plots(plot_list, ncol = 3)
+
+combined_histograms
+
+```
+
+
+## Item by within day time effect 
+
+Example: ema_01 (Nervous/Anxious)
+```{r}
+ggplot(EMA.DIGIT4, aes(x = surveyname, y = EMA_01, color = surveyname, fill = surveyname)) + 
+  geom_jitter(width = 0.2, alpha = 0.5) +  # Jittered scatter points
+  geom_boxplot(width = 0.2, color = "black", alpha = 0.5) +  # Boxplot 
+  scale_fill_manual(values = c("EBI_1_10AM" = "#00274C", "EBI_2_1PM" = "#00508B", "EBI_3_4pm" = "#0066A1", "EBI_4_7PM" = "#FFCB05")) +  
+  scale_color_manual(values = c("EBI_1_10AM" = "#00274C", "EBI_2_1PM" = "#00508B", "EBI_3_4pm" = "#0066A1", "EBI_4_7PM" = "#FFCB05")) +  
+  labs(title = "Nervous/Anxious by Survey Name", 
+       x = "Survey Name", 
+       y = "Nervous/Anxious") +
+  theme_minimal()  
+```
+
+
+# Correlation
+
+## Correlation matrix
+```{r}
+# Define the corrmatrix
+corrmatrix <- EMA.DIGIT4 %>%
+ select(participantidentifier, starts_with("EMA_"))
+
+
+StatsBetween <- statsBy(corrmatrix, group = "participantidentifier", cors = FALSE, method="spearman", na.rm = TRUE)
+
+Betweencorr <- as.matrix (StatsBetween$rbg) ## this is between person r value
+betweenp <- as.matrix(StatsBetween$pbg) ## this is between person p value
+betweenm <- as.matrix(StatsBetween$mean) ## This is person centered mean
+Withincorr <- as.matrix (StatsBetween$rwg) ## this is within person r value
+withinp <- as.matrix(StatsBetween$pwg) ## this is within person p value
+withinsd <- as.matrix(StatsBetween$sd) ## this is the within-person SD
+
+# create csv files of these correlation tables
+write.csv(Betweencorr, file = "Betweencorr.csv")
+write.csv(Withincorr, file = "Withincorr.csv")
+write.csv(betweenm, file = "betweenm.csv")
+write.csv(betweenp, file = "betweenp.csv")
+write.csv(withinp, file = "withinp.csv")
+write.csv(withinsd, file = "withinsd.csv")
+```
+
+## Plot correlogram
+```{r fig.height = 20, fig.width = 35, warning=F}
+# define color palette
+my_col <- colorRampPalette(c( "#ffcb05", "white", "#012d5f"))(100)
+
+# Create readable lables for corrplot
+rownames(Betweencorr) <- paste0(seq_along(ema_labels), ". ", ema_labels) 
+colnames(Betweencorr) <- rep("", 13) 
+rownames(Withincorr) <- rep("", 13)
+colnames(Withincorr) <- paste0(1:13, ".")
+
+# Plot within correlations on the upper diagonal 
+corrplot(Withincorr,
+         type = "upper",
+         method = "color",# depth of color represents strength of relationship
+         col = my_col, # use my color palette
+         p.mat = withinp,
+         sig.level = 0.05,
+         insig = "pch",
+         addCoef.col = "black",
+         tl.col = "black",
+         na.label = "--",
+         pch.cex = 15,
+         tl.srt = 0,
+         tl.cex = 3,        
+         number.cex = 3,   
+         cl.cex = 3 , 
+         number.digits = 2)   
+
+# Plot within correlations on the lower diagonal 
+corrplot(Betweencorr,
+         type = "lower",
+         method = "color",
+                   col = my_col,
+         p.mat = betweenp,
+         sig.level = 0.05,
+         insig = "pch",
+         addCoef.col = "black",
+         tl.col = "black",
+         pch.cex = 15,
+         tl.cex = 3,
+         number.cex = 3,
+         cl.pos = "n",
+         add = TRUE) # plots between and within together on the same plot!
+
+
+
 ```
 
 
