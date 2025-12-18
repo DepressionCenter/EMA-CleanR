@@ -22,16 +22,52 @@
 title: "EMA-CleanR"
 author: "Sarah Sperry; Victoria Murphy."
 date: "2025-12-05"
-abstract: "Efficient pre-processing, cleaning, and visualization of Ecological Momentary Assessment (EMA) survey data in R to enable high-quality, real-time behavioral insights. Learn more at: https://github.com/DepressionCenter/EMA-CleanR"
 
 #### ENTER INPUT PARAMETERS HERE ###
 params:
   input_file: "EMA-Data.csv"
   input_file_has_headers: TRUE
+  output_dir: "output"
   late_survey_cutoff_hour: 9 # Surveys completed before this time (typically 1 hour before the 1st AM survey) count towards the previous day
   ignore_surveys: ["Practice Daily Survey", "Practice", "Practica", "Prueba", "Test", "Temp", "Trial"]
-  ema_item_prefix: "EMA_" # All EMA columns (one per question) must start with this prefix
+  surveys_per_day: 4 # Number of surveys per day. In some EMA software, we must schedule each time as a separate survey.
   total_surveys_in_study: 112 # Total number of surveys. In this example, 4 surveys per day x 28 days = 112 surveys
+  ema_item_prefix: "EMA_" # All EMA columns (one per question) must start with this prefix
+
+    # Optional: setup friendly names for each of your EMA items
+  ema_item_labels:
+    value:
+      EMA_01: "Nervous/Anxious"
+      EMA_02: "Sad/Blue"
+      EMA_03: "Irritable/Angry"
+      EMA_04: "Happy/Joyful"
+      EMA_05: "Excited/Enthusiastic"
+      EMA_06: "Energy Level"
+      EMA_07: "Situation Stressful"
+      EMA_08: "Emotions Out of Control"
+      EMA_09: "Attention to Feelings"
+      EMA_10: "Confused About Feelings"
+      EMA_11: "Emotion Regulation"
+      EMA_12: "Impulsivity"
+      EMA_13: "Acting on Feelings"
+      # ...etc.
+      
+  # Optional: diagnosis codes, cohorts or groups mapped to the first letter/digit of the participant ID
+  # This example uses 5**** for bowel disease (BD), etc.
+  participant_group_map:
+    value:
+      "7": "HC"
+      "6": "SBD"
+      "5": "BD"
+
+  # U-M Colors for graphs
+  plot_colors:
+    value:
+      um_maize: "#FFCB05"
+      um_blue: "#00274C"
+      um_ligth_blue: "#537BAE"
+      um_dark_blue: "#012D5F"
+
 ### END INPUT PARAMETERS ###
 
 output:
@@ -49,27 +85,17 @@ output:
     self_contained: true
 ---
 
-<!--
-This file is part of EMA-CleanR
-EMA-CleanR.rmd
-Author(s): Sarah Sperry; Victoria Murphy.
-Created: 2025-12-05
-Summary: Efficient pre-processing, cleaning, and visualization of Ecological Momentary Assessment (EMA) survey data in R to enable high-quality, real-time behavioral insights.
-Notes: See README file for documentation and full license information.
 
-Copyright © 2025 The Regents of the University of Michigan
- 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-You should have received a copy of the GNU General Public License along
-with this program. If not, see <https://www.gnu.org/licenses/>.
--->
+<div style="font-weight:bold; font-size:1.2em; margin-top:20px; margin-bottom:5px;">Summary</div>
 
+<p>This data analysis provides an overview of Ecological Momentary Assessment (EMA) responses, including cleaning, flagging, and visualization. All steps and parameters are documented below.</p>
+
+<p><i>This file was generated using the [EMA-CleanR](https://github.com/DepressionCenter/EMA-CleanR) package from the University of Michigan. See [README](https://github.com/DepressionCenter/EMA-CleanR) file for instructions, more documentation and full license information.</i></p>
+
+---
+
+
+# Project Setup
 ```{r setup, include=FALSE}
 # Global chunk options
 knitr::opts_chunk$set(
@@ -78,11 +104,8 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 ```
-
-----
-
-# Project Setup
 ## Load Required Packages
+Refer to each package for their individual license
 ```{r load-packages}
 
 # Load required packages
@@ -98,43 +121,83 @@ library(patchwork)
 library(rlang)
 ```
 
-## Set Project Parameters
-The input parameters are set in the EMA-CleanR.Rmd file, in the top, in YAML format. 
-However, when using the R code alone (without Markdown), the parameter values can be set below after each "else" statement.
+## Set project parameters
+The input parameters are set in the EMA-CleanR.Rmd file, in the top, in YAML format.
+Example: 
+<pre><code>
+params:
+  input_file: "EMA-Data.csv"
+</code></pre>
+
+Refer to [README.md](https://github.com/DepressionCenter/EMA-CleanR) and the [knowledge base article](https://michmed.org/efdc-kb) for documentation on each parameter.
 ```{r set-parameters}
-### Input Parameters ###
-# If using R Markdown (.Rmd), set the parameters at the top of this file in YAML.
-# To re-use this script outside R Markdown, set your values here instead, after each "else" statement
-
-# Location of input file
-input_file <- if (exists("params") && !is.null(params$infile)) params$infile else "EMA-Data.csv"
-
-# Indicates that input file has headers
-input_file_has_headers <- if (exists("params") && !is.null(params$header)) params$header else TRUE
-
-# Surveys completed before this time (typically 1 hour before the 1st AM survey) count towards the previous day
-late_survey_cutoff_hour <- 
-  if (exists("params") && !is.null(params$late_survey_cutoff_hour)) params$late_survey_cutoff_hour else 0 # default
-
-# These survey names are ignored and removed from the data
-ignore_surveys <-
-  if (exists("params") && !is.null(params$ignore_surveys)) {
-    params$ignore_surveys
+# Assign each parameter from YAML (top section of this script) as a variable in the parent environment
+for (nm in names(params)) {
+  # Unlist if the parameter is a named mapping
+  if (nm %in% c("ema_item_labels", "participant_group_map", "plot_colors")) {
+    assign(nm, unlist(params[[nm]]), envir = .GlobalEnv)
   } else {
-    c("Practice Daily Survey", "Practice", "Practica", "Prueba", "Test", "Temp", "Trial") # default
+    assign(nm, params[[nm]], envir = .GlobalEnv)
   }
+}
 
-# All EMA columns (one per question) must start with this prefix
-ema_item_prefix <- 
-  if (exists("params") && !is.null(params$ema_item_prefix)) params$ema_item_prefix else "EMA_" # default
+# Print all parameter names and values that will be used by this script
+for (nm in names(params)) {
+  val <- if (nm == "ema_item_labels") unlist(params[[nm]]) else params[[nm]]
+  if (is.null(val)) {
+    cat(nm, "= NULL\n")
+  } else if (is.atomic(val) && length(val) > 1 && is.null(names(val))) {
+    cat(nm, "=", paste(val, collapse = ", "), "\n")
+  } else if (is.list(val) || (is.atomic(val) && !is.null(names(val)))) {
+    val_vec <- unlist(val)
+    if (!is.null(names(val_vec))) {
+      cat(nm, "=\n  ")
+      cat(paste(names(val_vec), val_vec, sep=": ", collapse = "; "), "\n")
+    } else {
+      cat(nm, "=", paste(val_vec, collapse = ", "), "\n")
+    }
+  } else {
+    cat(nm, "=", val, "\n")
+  }
+}
 
-# Total number of surveys. In this example, 4 surveys per day x 28 days = 112 surveys
-total_surveys_in_study <-
-  if (exists("params") && !is.null(params$total_surveys_in_study)) params$total_surveys_in_study else 112 # default
+
+# Ensure output directory is writable:
+if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+```
+
+## Global functions
+Global functions for common tasks throughout the code, such as setting color gradients.
+```{r global-functions}
+# Global functions for common tasks throughout the code, such as setting color gradients.
+
+# get_color_gradient(): Reusable function for color gradient, from U-M Blue to Maize
+# usage: survey_colors <- get_color_gradient(survey_names)
+get_color_gradient <- function(categories, from_col = plot_colors["um_blue"], to_col = plot_colors["um_maize"]) {
+  colorRampPalette(c(from_col, to_col))(length(categories)) |> setNames(categories)
+}
+
+# plot_ema_by_survey(): Reusable plotting function with optional friendly item labels
+plot_ema_by_survey <- function(df, item, survey_colors, item_labels = NULL) {
+  ylabel <- if (!is.null(item_labels) && item %in% names(item_labels)) item_labels[[item]] else item
+  ggplot(df, aes(x = surveyname, y = .data[[item]], color = surveyname, fill = surveyname)) +
+    geom_jitter(width = 0.2, alpha = 0.5) +
+    geom_boxplot(width = 0.2, color = "black", alpha = 0.5) +
+    scale_fill_manual(values = survey_colors) +
+    scale_color_manual(values = survey_colors) +
+    labs(
+      title = paste(ylabel, "by Survey"),
+      x = "Survey Name",
+      y = ylabel
+    ) +
+    theme_minimal()
+}
+
 
 ```
 
-## Load Data Sets
+
+## Load data sets
 ```{r load-data}
 # Read in data set 
 EMAwide.merge <- read.csv(input_file, sep = ",", header=input_file_has_headers)
@@ -204,21 +267,17 @@ EMA.DIGIT <- EMAwide.merge2_combined %>%
 cat("Remaining rows after parsing dates and removing duplicates:", nrow(EMA.DIGIT), "\n")
 ```
 
-## Categorize by participant ID convention
+## Create participant groups
 ```{r cleanup-categorize}
-# Create a new variable DX based on 'participant identifier'
+# Create a new variable participant_group based on 'participant identifier'
 # In this example, the participant IDs are setup so that
 # anything starting with 5 indicates a bowel disease diagnosis, etc.
 # This approach could also be used to group by other characteristics or cohorts.
 EMA.DIGIT <- EMA.DIGIT %>%
   mutate(
-    DX = case_when(
-      substr(participantidentifier, 1, 1) == "7" ~ "HC",
-      substr(participantidentifier, 1, 1) == "6" ~ "SBD",
-      substr(participantidentifier, 1, 1) == "5" ~ "BD",
-      TRUE ~ NA_character_
-    )) %>% 
-  relocate(DX, .after = participantidentifier)
+    participant_group = unname(participant_group_map[substr(participantidentifier, 1, 1)])
+    ) %>% 
+  relocate(participant_group, .after = participantidentifier)
 ```
 
 ## Identify and clean EMA items
@@ -316,16 +375,16 @@ EMA.DIGIT2$TTCFlag_High <- ifelse(EMA.DIGIT2$time_diff > SDcuthigh, 1, 0)
 
 ## Visualize time_diff in a histogram, where red line shows our SDcuthigh threshold
 ggplot(EMA.DIGIT2, aes(x = time_diff)) +
-  geom_histogram(binwidth = 5, fill = "#00274C", color = "black") +
+  geom_histogram(binwidth = 5, fill = plot_colors["um_blue"], color = "black") +
   geom_vline(xintercept = SDcuthigh, color = "red", linetype = "dashed", size = 1) +  # Add vertical red line
   labs(title = "Histogram of Time Difference",
        x = "Time Difference (secs)",
        y = "Frequency") +
   theme_minimal()
 
-## Identify the timediff low. Theoretically, we choose the minimum as someone who completes all possible items in less than 1 second per item. For this survey, we have 23 items so are setting the low at 23 seconds. Note that all 23 items are not included in our deidentified data file. 
+## Identify the timediff low. Theoretically, we choose the minimum as someone who completes all possible items in less than 1 second per item. In the EBI study, we had 23 items, so the code below originally used 23 seconds, even though not all 23 items are included in our deidentified data file. To generalize it, the code was modified to use length(ema_vars) which would yield the number of items in the actual data file. One item = 1 second minimum to complete.
 
-EMA.DIGIT2$TTCFlag_Low <- ifelse(EMA.DIGIT2$time_diff < 23, 1, 0)
+EMA.DIGIT2$TTCFlag_Low <- ifelse(EMA.DIGIT2$time_diff < length(ema_vars), 1, 0)
 
 ```
 
@@ -400,7 +459,7 @@ ggplot(EMA.DIGIT3_filtered, aes(x = minutes_rounded)) +
 
 ### SD histograms
 ```{r fig.width=10, fig.height=12}
-## SD FLAGS
+# SD FLAGS
 df_counts <- EMA.DIGIT3 %>%
   count(participantidentifier, SD_Flag)
 
@@ -410,7 +469,7 @@ ggplot(df_counts, aes(x = factor(SD_Flag), y = n, fill = factor(SD_Flag))) +
   labs(title = "Frequency of SD Flags",
        x = "Response",
        y = "Count") +
-  scale_fill_manual(values = c("0" = "#FFCB05", "1" = "#00274C")) +  # Customize colors
+  scale_fill_manual(values = c("0" = unname(plot_colors["um_maize"]),  "1" = unname(plot_colors["um_blue"]))) +
   theme_minimal()
 
 ```
@@ -465,7 +524,7 @@ ggplot(long_data, aes(x = surveyname, y = count, fill = survey_status)) +
   labs(x = "Survey Name", y = "Count", title = "Completed vs Missing Count by Survey Name") +  # Labels & title
   theme_minimal() +  # Clean theme
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
-  scale_fill_manual(values = c("completed" = "#00274C", "missing_count" = "#FFCB05"))  # Custom colors
+  scale_fill_manual(values = c("completed" = unname(plot_colors["um_blue"]), "missing_count" = unname(plot_colors["um_maize"])))
 
 
 ## Plot missingness count by weekday vs. weekend
@@ -474,14 +533,14 @@ ggplot(long_data, aes(x = surveyname, y = count, fill = survey_status)) +
 
 Vars <- EMA.DIGIT4 %>%
   select(participantidentifier, dayinstudy, surveyname,
-         day_type, deviceplatform, DX)
+         day_type, deviceplatform, participant_group)
 
 
 missing_surveys2 <- merge(missing_surveys, Vars, by = c("participantidentifier", "dayinstudy", "surveyname"), all.x = TRUE)
 
 missing_surveys2 <- missing_surveys2 %>%
   group_by(participantidentifier) %>%
-  fill(day_type, deviceplatform, DX, .direction = "downup") %>%  # Specify .direction only once
+  fill(day_type, deviceplatform, participant_group, .direction = "downup") %>%  # Specify .direction only once
   ungroup()
 
 # Aggregate data to sum completed and missing_count for each surveyname
@@ -503,7 +562,7 @@ ggplot(long_data, aes(x = day_type, y = count, fill = survey_status)) +
   labs(x = "Day Type", y = "Count", title = "Completed vs Missing Count by Day Type") +  # Labels & title
   theme_minimal() +  # Clean theme
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
-  scale_fill_manual(values = c("completed" = "#00274C", "missing_count" = "#FFCB05"))  # Custom colors
+  scale_fill_manual(values = c("completed" = unname(plot_colors["um_blue"]), "missing_count" = unname(plot_colors["um_maize"])))
 
 ## Now plot completion v. deviceplatform
 
@@ -526,13 +585,13 @@ ggplot(long_data, aes(x = deviceplatform, y = count, fill = survey_status)) +
   labs(x = "Device", y = "Count", title = "Completed vs Missing Count by Device") +  # Labels & title
   theme_minimal() +  # Clean theme
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
-  scale_fill_manual(values = c("completed" = "#00274C", "missing_count" = "#FFCB05"))  # Custom colors
+  scale_fill_manual(values = c("completed" = unname(plot_colors["um_blue"]), "missing_count" = unname(plot_colors["um_maize"])))
 
-## Now do it for diagnosis
+## Now do it for participant groups (diagnosis, cohort, etc.)
 
-# Aggregate data to sum completed and missing_count for each diagnosis
+# Aggregate data to sum completed and missing_count for each participant group
 survey_summary <- missing_surveys2 %>%
-  group_by(DX) %>%
+  group_by(participant_group) %>%
   summarise(completed = sum(completed, na.rm = TRUE),
             missing_count = sum(missing_count, na.rm = TRUE)) %>%
   ungroup()
@@ -544,72 +603,78 @@ long_data <- survey_summary %>%
                values_to = "count")  # Convert to long format
 
 # Create the grouped bar chart
-ggplot(long_data, aes(x = DX, y = count, fill = survey_status)) +
+ggplot(long_data, aes(x = participant_group, y = count, fill = survey_status)) +
   geom_bar(stat = "identity", position = "dodge") +  # Side-by-side bars
-  labs(x = "DX", y = "Count", title = "Completed vs Missing Count by DX") +  # Labels & title
+  labs(x = "Participant Group", y = "Count", title = "Completed vs Missing Count by Participant Group") +  # Labels & title
   theme_minimal() +  # Clean theme
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
-  scale_fill_manual(values = c("completed" = "#00274C", "missing_count" = "#FFCB05"))  # Custom colors
+  scale_fill_manual(values = c("completed" = unname(plot_colors["um_blue"]), "missing_count" = unname(plot_colors["um_maize"])))
 
 
 ```
 
-## Figures for percent_compliance
-
-```{r}
-## Total number of surveys that each person completed  & percentage complete
+## Figures for percent compliance
+```{r compliance-figures}
+# Compliance summary
 df_compliance <- EMA.DIGIT4 %>%
   group_by(participantidentifier) %>%
   summarise(
-    total_completed = sum(!is.na(surveyname)),  # Count non-missing survey responses
-    total_expected = max(dayinstudy, na.rm = TRUE) * 4,  # Expected surveys (dayinstudy * 4)
-    percent_compliance = (total_completed / total_expected) * 100, 
-    DX = first(DX) 
+    total_completed = sum(!is.na(surveyname)),
+    total_expected = max(dayinstudy, na.rm = TRUE) * surveys_per_day,
+    percent_compliance = (total_completed / total_expected) * 100,
+    participant_group = first(participant_group)
   )
 
-df_compliance$DX <- as.factor(df_compliance$DX)
+df_compliance$participant_group <- as.factor(df_compliance$participant_group)
 
+# Get all unique groups & set chunk size
+group_levels <- unique(df_compliance$participant_group)
+groups_per_plot <- 4
 
-## Compliance by DX  Violin Plots
-ggplot(df_compliance, aes(x = DX, y = percent_compliance, fill = DX)) +
-  geom_violin(trim = T, alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.5) +  # Add individual points
-  scale_fill_manual(values = c("#00274C", "#537BAE", "#FFCB05")) +  # Michigan hex codes
-  labs(title = "Survey Completion Percentage Distribution",
-       x = "Diagnosis",
-       y = "Percent Complete") +
-  theme_minimal() +
-  theme(legend.position = "none") + 
-  ylim(0,101)
+# Split groups into chunks of 4
+group_slices <- split(group_levels, ceiling(seq_along(group_levels) / groups_per_plot))
 
+# Loop and create compliance by participant violin plots, with max 4 groups at a time
+for (i in seq_along(group_slices)) {
+  current_groups <- group_slices[[i]]
+  
+  # Subset data
+  df_sub <- df_compliance %>%
+    filter(participant_group %in% current_groups)
+  
+  # Dynamic color palette for each group
+  current_colors <- get_color_gradient(
+    as.character(current_groups), 
+    from_col = plot_colors["um_blue"],
+    to_col   = plot_colors["um_maize"]
+  )
+  
+  # Make and print the plot
+  p <- ggplot(df_sub, aes(x = participant_group, y = percent_compliance, fill = participant_group)) +
+    geom_violin(trim = TRUE, alpha = 0.7) +
+    geom_jitter(width = 0.2, alpha = 0.5) +
+    scale_fill_manual(values = current_colors) +
+    labs(
+      title = paste("Survey Completion % for Groups:", paste(current_groups, collapse = ", ")),
+      x = "Participant Group",
+      y = "Percent Complete"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "none") + 
+    ylim(0,101)
+  
+  print(p)
+}
 ```
 
 ## Compliance table
 ```{r}
-table1(~ percent_compliance  | DX, data=df_compliance)
+table1(~ percent_compliance  | participant_group, data=df_compliance)
 ```
 
 # Item Distribution
 ## Histograms of EMA items
-
 ```{r, fig.height = 9, fig.width = 11, warning=F}
-
-# make labels for items
-ema_labels <- c(
-  EMA_01 = "Nervous/Anxious",
-  EMA_02 = "Sad/Blue",
-  EMA_03 = "Irritable/Angry",
-  EMA_04 = "Happy/Joyful",
-  EMA_05 = "Excited/Enthusiastic",
-  EMA_06 = "Energy Level",
-  EMA_07 = "Situation Stressful",
-  EMA_08 = "Emotions Out of Control",
-  EMA_09 = "Attention to Feelings",
-  EMA_10 = "Confused About Feelings",
-  EMA_11 = "Emotion Regulation",
-  EMA_12 = "Impulsivity",
-  EMA_13 = "Acting on Feelings"
-)
 
 # Function for plotting histogram
 plot_list <- lapply(ema_vars, function(var){ # use previously defined ema_vars
@@ -617,7 +682,7 @@ plot_list <- lapply(ema_vars, function(var){ # use previously defined ema_vars
   ggplot(EMA.DIGIT4, aes(x = .data[[var]])) +
     geom_histogram(bins = 10, fill = "skyblue", color = "black") +
     labs(
-      title = ema_labels[[var]], 
+      title = ema_item_labels[[var]], 
       x = var, 
       y = "Frequency"
     ) +
@@ -632,30 +697,35 @@ combined_histograms
 ```
 
 
-## Item by within day time effect 
+## Item by within day time effect
+```{r item-within-day-effect}
+survey_names <- unique(EMA.DIGIT4$surveyname)
+num_surveys <- length(survey_names)
+survey_colors <- get_color_gradient(survey_names)
+names(survey_colors) <- survey_names
 
-Example: ema_01 (Nervous/Anxious)
-```{r}
-ggplot(EMA.DIGIT4, aes(x = surveyname, y = EMA_01, color = surveyname, fill = surveyname)) + 
-  geom_jitter(width = 0.2, alpha = 0.5) +  # Jittered scatter points
-  geom_boxplot(width = 0.2, color = "black", alpha = 0.5) +  # Boxplot 
-  scale_fill_manual(values = c("EBI_1_10AM" = "#00274C", "EBI_2_1PM" = "#00508B", "EBI_3_4pm" = "#0066A1", "EBI_4_7PM" = "#FFCB05")) +  
-  scale_color_manual(values = c("EBI_1_10AM" = "#00274C", "EBI_2_1PM" = "#00508B", "EBI_3_4pm" = "#0066A1", "EBI_4_7PM" = "#FFCB05")) +  
-  labs(title = "Nervous/Anxious by Survey Name", 
-       x = "Survey Name", 
-       y = "Nervous/Anxious") +
-  theme_minimal()  
+
+ema_plots <- lapply(ema_vars, function(item) {
+  plot_ema_by_survey(EMA.DIGIT4, item, survey_colors, ema_item_labels)
+})
+
+for (i in seq_along(ema_vars)) {
+  print(ema_plots[[i]])
+}
 ```
 
 
 # Correlation
 
 ## Correlation matrix
-```{r}
+```{r define-corrmatrix}
 # Define the corrmatrix
 corrmatrix <- EMA.DIGIT4 %>%
- select(participantidentifier, starts_with("EMA_"))
+ select(participantidentifier, starts_with(ema_item_prefix))
 
+# For ema item labels, retrieve the ones corresponding to the actual columns in the correlation matrices
+current_ema_items <- names(corrmatrix)[names(corrmatrix) != "participantidentifier"]
+current_item_labels <- ema_item_labels[current_ema_items]
 
 StatsBetween <- statsBy(corrmatrix, group = "participantidentifier", cors = FALSE, method="spearman", na.rm = TRUE)
 
@@ -666,31 +736,25 @@ Withincorr <- as.matrix (StatsBetween$rwg) ## this is within person r value
 withinp <- as.matrix(StatsBetween$pwg) ## this is within person p value
 withinsd <- as.matrix(StatsBetween$sd) ## this is the within-person SD
 
-# create csv files of these correlation tables
-write.csv(Betweencorr, file = "Betweencorr.csv")
-write.csv(Withincorr, file = "Withincorr.csv")
-write.csv(betweenm, file = "betweenm.csv")
-write.csv(betweenp, file = "betweenp.csv")
-write.csv(withinp, file = "withinp.csv")
-write.csv(withinsd, file = "withinsd.csv")
 ```
 
 ## Plot correlogram
-```{r fig.height = 20, fig.width = 35, warning=F}
+```{r plot-corrmatrix, fig.height = 20, fig.width = 35, warning=F}
 # define color palette
-my_col <- colorRampPalette(c( "#ffcb05", "white", "#012d5f"))(100)
+my_col <- colorRampPalette(c(plot_colors["um_maize"], "white", plot_colors["um_dark_blue"]))(100)
 
-# Create readable lables for corrplot
-rownames(Betweencorr) <- paste0(seq_along(ema_labels), ". ", ema_labels) 
-colnames(Betweencorr) <- rep("", 13) 
-rownames(Withincorr) <- rep("", 13)
-colnames(Withincorr) <- paste0(1:13, ".")
 
-# Plot within correlations on the upper diagonal 
+# Set readable labels for corrplot using your labels param
+rownames(Betweencorr) <- paste0(seq_along(current_item_labels), ". ", current_item_labels)
+colnames(Betweencorr) <- rep("", length(current_item_labels))
+rownames(Withincorr) <- rep("", length(current_item_labels))
+colnames(Withincorr) <- paste0(seq_along(current_item_labels), ".")
+
+# Plot within correlations on the upper diagonal
 corrplot(Withincorr,
          type = "upper",
-         method = "color",# depth of color represents strength of relationship
-         col = my_col, # use my color palette
+         method = "color",
+         col = my_col,
          p.mat = withinp,
          sig.level = 0.05,
          insig = "pch",
@@ -699,16 +763,16 @@ corrplot(Withincorr,
          na.label = "--",
          pch.cex = 15,
          tl.srt = 0,
-         tl.cex = 3,        
-         number.cex = 3,   
-         cl.cex = 3 , 
-         number.digits = 2)   
+         tl.cex = 3,
+         number.cex = 3,
+         cl.cex = 3,
+         number.digits = 2)
 
-# Plot within correlations on the lower diagonal 
+# Plot between person correlations on the lower diagonal
 corrplot(Betweencorr,
          type = "lower",
          method = "color",
-                   col = my_col,
+         col = my_col,
          p.mat = betweenp,
          sig.level = 0.05,
          insig = "pch",
@@ -720,10 +784,29 @@ corrplot(Betweencorr,
          cl.pos = "n",
          add = TRUE) # plots between and within together on the same plot!
 
+```
 
+# Output
+The correlation tables are saved as individual CSVs in the output_dir directory. 
+
+```{r outputs}
+# Create csv files of correlation tables
+write.csv(Betweencorr, file = file.path(output_dir, "Betweencorr.csv"))
+write.csv(Withincorr, file = file.path(output_dir, "Withincorr.csv"))
+write.csv(betweenm, file = file.path(output_dir, "betweenm.csv"))
+write.csv(betweenp, file = file.path(output_dir, "betweenp.csv"))
+write.csv(withinp, file = file.path(output_dir, "withinp.csv"))
+write.csv(withinsd, file = file.path(output_dir, "withinsd.csv"))
+
+# For HTML report (from R console or script)
+#rmarkdown::render("EMA-CleanR.Rmd", output_dir = output_dir)
 
 ```
 
+---
+
+For instructions and more information on this program, please visit our GitHub page at: 
+[https://github.com/DepressionCenter/EMA-CleanR](https://github.com/DepressionCenter/EMA-CleanR)
 
 
 ----
