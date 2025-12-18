@@ -30,22 +30,28 @@ EMA-CleanR is a program for efficient pre-processing, cleaning, and visualizatio
   <img 
     src="images/EMA-CleanR-Screenshot1.png" 
     alt="Screenshot of EMA-CleanR output in HTML" 
-    style="max-width:840px; width:100%; display:block; margin:auto;" />
+    style="max-width:800px; width:100%; display:block; margin:auto;" />
+</a>
+
+<a href="https://depressioncenter.github.io/EMA-CleanR/EMA-CleanR.html" target="_blank" rel="noopener">
+  <img 
+    src="images/EMA-CleanR-Screenshot2.png" 
+    alt="Screenshot of EMA-CleanR visualizations" 
+    style="max-width:800px; width:100%; display:block; margin:auto;" />
 </a>
 
 
 ## Quick Start Guide
 + To view sample data and a code walk-through, simply visit: https://depressioncenter.github.io/EMA-CleanR/EMA-CleanR.html
-+ Download and extract this repository (or clone with it).
-+ Open **EMA-CleanR.html** to explore the code using sample data. This is the same output that can be found at: https://depressioncenter.github.io/EMA-CleanR/EMA-CleanR.html
-+ To load your own data:
-  + Replace **EMA-Data.csv** with your own file.
-    + Ensure it has at least these columns: participantidentifier,surveyname,start_datetime,end_datetime
-    + Each row represents one survey taken by one participant at one point in time.
-    + There should be one column per question, and the column headings should start with "EMA_" (e.g. EMA_01, EMA_02, etc.)
-  + Open **EMA-CleanR.Rmd** with R-Studio.
-  + Edit the parameters at the top if needed (e.g. input file name).
-  + Click the Knittr button to generate a new EMA-CleanR.html file with your own data.
++ To use with your own data, first download and extract this repository (or clone with it).
++ Replace **EMA-Data.csv** with your own file.
+  + Ensure it has at least these columns: participantidentifier,surveyname,start_datetime,end_datetime
+  + There should be one column per question, and the column headings should start with "EMA_" (e.g. EMA_01, EMA_02, etc.)
+  + Each row represents one survey taken by one participant at one point in time.
++ Open **EMA-CleanR.Rmd** with R-Studio. If asked, install any missing packages.
++ Edit the parameters at the top if needed (e.g. input file name), in the YAML section.
++ Click the "Knit" button (or Ctrl+Shift+K) to generate a new **EMA-CleanR.html** file. This will contain a walk-through analysis of your data and visualizations.
++ The output directory will contain exports of the data analysis in CSV format.
 
 
 
