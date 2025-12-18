@@ -43,7 +43,7 @@ EMA-CleanR is a program for efficient pre-processing, cleaning, and visualizatio
 
 ## Quick Start Guide
 + To view sample data and a code walk-through, simply visit: https://depressioncenter.github.io/EMA-CleanR/EMA-CleanR.html
-+ To use with your own data, first download and extract this repository (or clone with it).
++ To use with your own data, first download and extract this repository (or clone it).
 + Replace **EMA-Data.csv** with your own file.
   + Ensure it has at least these columns: participantidentifier,surveyname,start_datetime,end_datetime
   + There should be one column per question, and the column headings should start with "EMA_" (e.g. EMA_01, EMA_02, etc.)
@@ -56,7 +56,7 @@ EMA-CleanR is a program for efficient pre-processing, cleaning, and visualizatio
 
 
 ## Documentation
-+ The full documentation is available at: https://michmed.org/efdc-kb
++ The full documentation is available at: https://teamdynamix.umich.edu/TDClient/210/DepressionCenter/KB/ArticleDet?ID=14610
 
 
 
