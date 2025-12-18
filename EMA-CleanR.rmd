@@ -31,6 +31,7 @@ params:
   late_survey_cutoff_hour: 9 # Surveys completed before this time (typically 1 hour before the 1st AM survey) count towards the previous day
   ignore_surveys: ["Practice Daily Survey", "Practice", "Practica", "Prueba", "Test", "Temp", "Trial"]
   ema_item_prefix: "EMA_" # All EMA columns (one per question) must start with this prefix
+  total_surveys_in_study: 112 # Total number of surveys. In this example, 4 surveys per day x 28 days = 112 surveys
 ### END INPUT PARAMETERS ###
 
 output:
@@ -98,16 +99,24 @@ library(rlang)
 ```
 
 ## Set Project Parameters
+The input parameters are set in the EMA-CleanR.Rmd file, in the top, in YAML format. 
+However, when using the R code alone (without Markdown), the parameter values can be set below after each "else" statement.
 ```{r set-parameters}
 ### Input Parameters ###
 # If using R Markdown (.Rmd), set the parameters at the top of this file in YAML.
 # To re-use this script outside R Markdown, set your values here instead, after each "else" statement
+
+# Location of input file
 input_file <- if (exists("params") && !is.null(params$infile)) params$infile else "EMA-Data.csv"
+
+# Indicates that input file has headers
 input_file_has_headers <- if (exists("params") && !is.null(params$header)) params$header else TRUE
 
+# Surveys completed before this time (typically 1 hour before the 1st AM survey) count towards the previous day
 late_survey_cutoff_hour <- 
-  if (exists("params") && !is.null(params$late_survey_cutoff_hour)) params$late_survey_cutoff_hour else 0
+  if (exists("params") && !is.null(params$late_survey_cutoff_hour)) params$late_survey_cutoff_hour else 0 # default
 
+# These survey names are ignored and removed from the data
 ignore_surveys <-
   if (exists("params") && !is.null(params$ignore_surveys)) {
     params$ignore_surveys
@@ -115,8 +124,13 @@ ignore_surveys <-
     c("Practice Daily Survey", "Practice", "Practica", "Prueba", "Test", "Temp", "Trial") # default
   }
 
+# All EMA columns (one per question) must start with this prefix
 ema_item_prefix <- 
   if (exists("params") && !is.null(params$ema_item_prefix)) params$ema_item_prefix else "EMA_" # default
+
+# Total number of surveys. In this example, 4 surveys per day x 28 days = 112 surveys
+total_surveys_in_study <-
+  if (exists("params") && !is.null(params$total_surveys_in_study)) params$total_surveys_in_study else 112 # default
 
 ```
 
@@ -332,11 +346,7 @@ EMA.DIGIT3 <- EMA.DIGIT2 %>%
 ```
 
 ## Flag Review
-
-```{r}
-# total number of surveys in your study. This study has 4 surveys over 28 days == 112 total surveys
-totalsurvey_n <- 112 
-
+```{r flag-review}
 ## Create a df with IDs and the counts and percentages of data that are flagged 
 summary_df <- EMA.DIGIT3 %>%
   group_by(participantidentifier) %>%
@@ -344,9 +354,9 @@ summary_df <- EMA.DIGIT3 %>%
     TTCFlag_High = sum(TTCFlag_High, na.rm = TRUE),
     TTCFlag_Low = sum(TTCFlag_Low, na.rm = TRUE),
     SD_Flag = sum(SD_Flag, na.rm = TRUE), 
-    Percent_TTCFlag_High = round((TTCFlag_High / totalsurvey_n) * 100, 0),
-    Percent_TTCFlag_Low = round((TTCFlag_Low / totalsurvey_n) * 100, 0),
-    Percent_SD_Flag = round((SD_Flag / totalsurvey_n) * 100, 0)
+    Percent_TTCFlag_High = round((TTCFlag_High / total_surveys_in_study) * 100, 0),
+    Percent_TTCFlag_Low = round((TTCFlag_Low / total_surveys_in_study) * 100, 0),
+    Percent_SD_Flag = round((SD_Flag / total_surveys_in_study) * 100, 0)
   )
 summary_df
 
