@@ -395,12 +395,13 @@ Calculate SD for items with Likert Scale and create flags
 
 ```{r}
 ## If there is zero variance across all ema items, SD_Flag == 1
+last_ema_var <- tail(ema_vars, 1)
 EMA.DIGIT3 <- EMA.DIGIT2 %>%
   mutate(
     sd_EMA = apply(select(., all_of(ema_vars)), 1, sd, na.rm = TRUE),
     SD_Flag = if_else(sd_EMA == 0, 1, 0)
   ) %>%
-  relocate(sd_EMA, SD_Flag, .after = EMA_13)
+  relocate(sd_EMA, SD_Flag, .after = last_ema_var)
 
 ```
 
@@ -836,6 +837,11 @@ Free Documentation License". If not, see <https://www.gnu.org/licenses/fdl-1.3-s
 
 ## Citation
 If you find this repository, code or paper useful for your research, please cite it.
+
+#### Citation Example:
+>Sperry, Sarah; Murphy, Victoria (2025). EMA-CleanR. University of Michigan. Software. https://github.com/DepressionCenter/EMA-CleanR  
+​​​​​​​     _DOI: [10.5281/zenodo.17982076](https://doi.org/10.5281/zenodo.17982076)_
+
 
 
 ----
