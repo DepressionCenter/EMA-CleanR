@@ -26,14 +26,14 @@ with this program. If not, see <https://www.gnu.org/licenses/>.
 ## Description
 EMA-CleanR is a program for efficient pre-processing, cleaning, and visualization of Ecological Momentary Assessment (EMA) survey data in R to enable high-quality, real-time behavioral insights. It was created by Dr. Sarah Sperry and Victoria Murphy of the Emotion and Temporal Dynamics (EmoTe) Lab at the University of Michigan.
 
-<a href="https://depressioncenter.github.io/EMA-CleanR/EMA-CleanR.html" target="_blank" rel="noopener">
+<a href="https://code.depressioncenter.org/EMA-CleanR/EMA-CleanR.html" target="_blank" rel="noopener">
   <img 
     src="images/EMA-CleanR-Screenshot1.png" 
     alt="Screenshot of EMA-CleanR output in HTML" 
     style="max-width:800px; width:100%; display:block; margin:auto;" />
 </a>
 
-<a href="https://depressioncenter.github.io/EMA-CleanR/EMA-CleanR.html" target="_blank" rel="noopener">
+<a href="https://code.depressioncenter.org/EMA-CleanR/EMA-CleanR.html" target="_blank" rel="noopener">
   <img 
     src="images/EMA-CleanR-Screenshot2.png" 
     alt="Screenshot of EMA-CleanR visualizations" 
@@ -42,7 +42,7 @@ EMA-CleanR is a program for efficient pre-processing, cleaning, and visualizatio
 
 
 ## Quick Start Guide
-+ To view sample data and a code walk-through, simply visit: https://depressioncenter.github.io/EMA-CleanR/EMA-CleanR.html
++ To view sample data and a code walk-through, simply visit: https://code.depressioncenter.org/EMA-CleanR/EMA-CleanR.html
 + To use with your own data, first download and extract this repository (or clone it).
 + Replace **EMA-Data.csv** with your own file.
   + Ensure it has at least these columns: participantidentifier,surveyname,start_datetime,end_datetime
