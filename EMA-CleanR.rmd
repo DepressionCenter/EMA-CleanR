@@ -1,5 +1,5 @@
 ---
-# This file is part of EMA-CleanR
+# This file is part of EMA-CleanR™
 # EMA-CleanR.rmd
 # Author(s): Sarah Sperry; Victoria Murphy.
 # Created: 2025-12-05
@@ -19,7 +19,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 
 # YAML project configuration
-title: "EMA-CleanR"
+title: "EMA-CleanR™"
 author: "Sarah Sperry; Victoria Murphy."
 date: "2025-12-05"
 
@@ -90,7 +90,7 @@ output:
 
 <p>This data analysis provides an overview of Ecological Momentary Assessment (EMA) responses, including cleaning, flagging, and visualization. All steps and parameters are documented below.</p>
 
-<p><i>This file was generated using the [EMA-CleanR](https://github.com/DepressionCenter/EMA-CleanR) package from the University of Michigan. See [README](https://github.com/DepressionCenter/EMA-CleanR) file for instructions, more documentation and full license information.</i></p>
+<p><i>This file was generated using the [EMA-CleanR™](https://github.com/DepressionCenter/EMA-CleanR) package from the University of Michigan. See [README](https://github.com/DepressionCenter/EMA-CleanR) file for instructions, more documentation and full license information.</i></p>
 
 ---
 
@@ -839,11 +839,11 @@ Free Documentation License". If not, see <https://www.gnu.org/licenses/fdl-1.3-s
 If you find this repository, code or paper useful for your research, please cite it.
 
 #### Citation Example:
->Sperry, Sarah; Murphy, Victoria (2025). EMA-CleanR. University of Michigan. Software. https://github.com/DepressionCenter/EMA-CleanR  
+>Sperry, Sarah; Murphy, Victoria (2025). EMA-CleanR™. University of Michigan. Software. https://github.com/DepressionCenter/EMA-CleanR  
 ​​​​​​​     _DOI: [10.5281/zenodo.17982076](https://doi.org/10.5281/zenodo.17982076)_
 
 
 
 ----
 
-Copyright © 2025 The Regents of the University of Michigan
+Copyright © 2025-2026 The Regents of the University of Michigan
