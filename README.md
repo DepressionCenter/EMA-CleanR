@@ -1,7 +1,8 @@
 <!--
-This file is part of EMA-CleanR
+This file is part of EMA-CleanR™
 README.md
 Author(s): Sarah Sperry; Victoria Murphy.
+Contributor(s): Gabriel Mongefranco; Eisenberg Family Depression Center.
 Created: 2025-12-12
 Summary: Provides an overview of the project, in Markdown format.
 Notes: See README file for documentation and full license information.
@@ -21,22 +22,22 @@ with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 ![Eisenberg Family Depression Center](https://github.com/DepressionCenter/.github/blob/main/images/EFDCLogo_375w.png "depressioncenter.org")
 
-# EMA-CleanR
+# EMA-CleanR™
 
 ## Description
-EMA-CleanR is a program for efficient pre-processing, cleaning, and visualization of Ecological Momentary Assessment (EMA) survey data in R to enable high-quality, real-time behavioral insights. It was created by Dr. Sarah Sperry and Victoria Murphy of the Emotion and Temporal Dynamics (EmoTe) Lab at the University of Michigan.
+EMA-CleanR™ is a program for efficient pre-processing, cleaning, and visualization of Ecological Momentary Assessment (EMA) survey data in R to enable high-quality, real-time behavioral insights. It was created by Dr. Sarah Sperry and Victoria Murphy of the Emotion and Temporal Dynamics (EmoTe) Lab at the University of Michigan.
 
 <a href="https://code.depressioncenter.org/EMA-CleanR/EMA-CleanR.html" target="_blank" rel="noopener">
   <img 
     src="images/EMA-CleanR-Screenshot1.png" 
-    alt="Screenshot of EMA-CleanR output in HTML" 
+    alt="Screenshot of EMA-CleanR™ output in HTML" 
     style="max-width:800px; width:100%; display:block; margin:auto;" />
 </a>
 
 <a href="https://code.depressioncenter.org/EMA-CleanR/EMA-CleanR.html" target="_blank" rel="noopener">
   <img 
     src="images/EMA-CleanR-Screenshot2.png" 
-    alt="Screenshot of EMA-CleanR visualizations" 
+    alt="Screenshot of EMA-CleanR™ visualizations" 
     style="max-width:800px; width:100%; display:block; margin:auto;" />
 </a>
 
@@ -104,7 +105,8 @@ If you need assistance identifying a contact person, email the project maintaine
 
 ## License
 ### Copyright Notice
-Copyright © 2025 The Regents of the University of Michigan
+EMA-CleanR™ is trademark of The Regents of the University of Michigan.
+Copyright © 2025-2026 The Regents of the University of Michigan.
 
 
 ### Software and Library License Notice
@@ -129,10 +131,10 @@ Free Documentation License". If not, see <https://www.gnu.org/licenses/fdl-1.3-s
 If you find this repository, code or paper useful for your research, please cite it.
 
 #### Citation Example:
->_Sperry, Sarah; Murphy, Victoria (2025). EMA-CleanR. University of Michigan. Software. https://github.com/DepressionCenter/EMA-CleanR_  
+>_Sperry, Sarah; Murphy, Victoria (2025). EMA-CleanR™. University of Michigan. Software. https://github.com/DepressionCenter/EMA-CleanR_  
 ​​​​​​​     _DOI: [10.5281/zenodo.17982075](https://doi.org/10.5281/zenodo.17982075)_
 
 
 ----
 
-Copyright © 2025 The Regents of the University of Michigan
+Copyright © 2025-2026 The Regents of the University of Michigan
