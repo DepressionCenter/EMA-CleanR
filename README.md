@@ -25,7 +25,11 @@ with this program. If not, see <https://www.gnu.org/licenses/>.
 # EMA-CleanR™
 
 ## Description
-EMA-CleanR™ is a program for efficient pre-processing, cleaning, and visualization of Ecological Momentary Assessment (EMA) survey data in R to enable high-quality, real-time behavioral insights. It was created by Dr. Sarah Sperry and Victoria Murphy of the Emotion and Temporal Dynamics (EmoTe) Lab at the University of Michigan.
+EMA-CleanR™ is an open-source R and R Markdown workflow for preprocessing, cleaning, and visualizing ecological momentary assessment (EMA) survey data. It turns repeated, participant-level survey exports into documented analyses, visualizations, and reusable CSV outputs.
+
+Researchers can replace the sample CSV, set input parameters, and knit the R Markdown file in RStudio to generate an HTML report. The workflow is designed for behavioral science, digital phenotyping, intensive longitudinal data, and other real-time assessment studies.
+
+EMA-CleanR™ was created by Dr. Sarah Sperry and Victoria Murphy of the Emotion and Temporal Dynamics (EmoTe) Lab at the University of Michigan.
 
 <a href="https://code.depressioncenter.org/EMA-CleanR/EMA-CleanR.html" target="_blank" rel="noopener">
   <img 
