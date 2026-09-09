@@ -48,7 +48,8 @@ EMA-CleanR™ was created by Dr. Sarah Sperry and Victoria Murphy of the Emotion
 
 ## Quick Start Guide
 + To view sample data and a code walk-through, simply visit: https://code.depressioncenter.org/EMA-CleanR/EMA-CleanR.html
-+ To use with your own data, first download and extract this repository (or clone it).
++ To use with your own data, you can run it in your browser with [ShareR](https://code.depressioncenter.org/ShareR/?repo=DepressionCenter/EMA-CleanR), or locally with RStudio.
++ To run it locally, first download and extract this repository (or clone it).
 + Replace **EMA-Data.csv** with your own file.
   + Ensure it has at least these columns: participantidentifier,surveyname,start_datetime,end_datetime
   + There should be one column per question, and the column headings should start with "EMA_" (e.g. EMA_01, EMA_02, etc.)
